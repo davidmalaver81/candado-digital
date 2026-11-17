@@ -46,4 +46,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: resultados-simulacion
-          path: resultados/*.log
+          path: |
+            resultados/*.log
+            resultados/*.vcd
