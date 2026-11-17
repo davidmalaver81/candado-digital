@@ -1,0 +1,49 @@
+name: Simulacion
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  simular:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar Icarus Verilog
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y iverilog
+
+      - name: Ejecutar los tres bancos de prueba
+        run: |
+          mkdir -p resultados
+          iverilog -g2005 -o resultados/boton.vvp src/boton_limpio.v sim/tb_boton_limpio.v
+          iverilog -g2005 -o resultados/fsm.vvp src/candado_fsm.v sim/tb_candado_fsm.v
+          iverilog -g2005 -o resultados/top.vvp src/boton_limpio.v src/candado_fsm.v src/candado_top.v sim/tb_candado.v
+          cd resultados
+          vvp boton.vvp | tee boton_limpio.log
+          vvp fsm.vvp   | tee candado_fsm.log
+          vvp top.vvp   | tee candado.log
+
+      - name: Resumen en la pagina de la ejecucion
+        if: always()
+        run: |
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat resultados/*.log >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Fallar si algun caso fallo
+        run: |
+          if grep -qE '^FALLO|FALLOS ===' resultados/*.log; then
+            echo "Hay casos fallidos"; exit 1
+          fi
+          test "$(grep -l 'TODAS LAS PRUEBAS PASARON' resultados/*.log | wc -l)" -eq 3
+
+      - name: Guardar registros y formas de onda
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: resultados-simulacion
+          path: resultados/*.log
