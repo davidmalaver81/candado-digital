@@ -1,0 +1,10 @@
+*.vvp
+*.vcd
+*.jou
+*.log
+.Xil/
+*.cache/
+*.hw/
+*.sim/
+*.runs/
+*.ip_user_files/
